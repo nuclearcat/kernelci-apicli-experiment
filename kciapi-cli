@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+# No (c) & etc yet, too early, it's just PoC
+# TODO:
+# Configurable URL, storing secrets
+
+import sys
+import requests
+import click
+import urllib.parse
+
+baseurl = 'http://localhost:8001/'
+
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+  if ctx.invoked_subcommand is None:
+    print("Try --help")
+    ctx.exit(1)
+
+''' Check kernelci-api status '''
+@cli.command()
+def status():
+  try:
+    response = requests.get(baseurl)
+  except:
+    print("Request error, aborting")
+    sys.exit(1)
+  if "message" in response.json():
+	  print("kernelci-api is up")
+
+''' Generating password hash '''
+@cli.command()
+@click.pass_obj
+def password(ctx):
+  password_value = click.prompt('Please enter password', type=str, hide_input=True)
+  safe_string = urllib.parse.quote_plus(password_value)
+  try:
+    response = requests.get(baseurl + "hash/" + safe_string)
+  except:
+    print("Request error, aborting")
+    sys.exit(1)
+  print(response.text)
+
+if __name__ == '__main__':
+    cli(obj={})
