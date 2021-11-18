@@ -4,11 +4,19 @@
 # Configurable URL, storing secrets
 
 import sys
+import os
 import requests
 import click
 import urllib.parse
+import subprocess
+import shlex
+import re
 
 baseurl = 'http://localhost:8001/'
+# This is definitely temporary hack
+dockerpath = '~/PROJECTS/kernelci-api'
+# Do we need sudo for docker-compose?
+docker_sudo = True
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -40,6 +48,33 @@ def password(ctx):
     print("Request error, aborting")
     sys.exit(1)
   print(response.text)
+
+''' Add user to MongoDB '''
+@cli.command()
+@click.option('-u', '--username')
+def mongoadduser(username):
+  if username == None:
+    print("Please specify --username")
+    sys.exit(1)
+  password_value = click.prompt('Please enter password', type=str, hide_input=True)
+  password_value2 = click.prompt('Please enter password again', type=str, hide_input=True)
+  if password_value != password_value2:
+    print("Passwords doesn't match")
+    sys.exit(1)
+  safe_string = urllib.parse.quote_plus(password_value)
+  try:
+    response = requests.get(baseurl + "hash/" + safe_string)
+  except:
+    print("Request error, aborting")
+    sys.exit(1)
+  os.chdir(os.path.expanduser(dockerpath))
+  escaped_hash = re.escape(response.text[1:-1])
+  launchstr = "sudo docker-compose -f docker/docker-compose.yaml exec db \
+  /bin/mongo kernelci --eval \
+  \"db.user.insert({username: '"+username+"', \
+  hashed_password: '"+escaped_hash+"', active: true})\""
+
+  subprocess.call(launchstr, shell=True)
 
 if __name__ == '__main__':
     cli(obj={})
