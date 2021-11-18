@@ -15,7 +15,7 @@ import re
 
 DEFAULT_URL = 'http://localhost:8001/'
 # This is definitely temporary hack
-dockerpath = '~/PROJECTS/kernelci-api'
+dockerpath = '../kernelci-api'
 # Do we need sudo for docker-compose?
 docker_sudo = True
 
